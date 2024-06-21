@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>2021 EB Annual Game</title>
+    <link
+      href="./css/animate.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./css/bootstrap.min.css">
+    <script src="./js/bootstrap.bundle.min.js"></script>
+    <style>
+      html {
+        width: 100%;
+        height: 100%;
+      }
+      body {
+        box-sizing: border-box;
+        overflow: hidden;
+        background: #334;
+        /* padding: 20px; */
+        background-image: url('./css/eb-background.jpg');
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+      body::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background-color: rgba(59, 59, 68, 0.5);
+        z-index: -1;
+      }
+      img {
+        border-radius: 10%;
+      }
+
+      .photo-wall {
+        box-sizing: border-box;
+        padding: 20px;
+        position: relative;
+        display: flex;
+        animation-duration: 2s;
+        flex-flow: row wrap;
+        justify-content: center;
+        align-content: center;
+        height: 100%;
+      }
+      .photo-wall #tags img {
+        width: 50px;
+      }
+      .pick-wall {
+        display: none;
+        /* display: flex; */
+        justify-items: center;
+        justify-content: center;
+        align-items: center;
+        animation-duration: 2s;
+        justify-content: center;
+        height: 100%;
+      }
+      .photo {
+        /* width: 50px; */
+        /* height: 50px; */
+        /* position: absolute; */
+        box-sizing: border-box;
+        padding: 3px;
+        display: flex;
+        flex-direction: column;
+        top: 0;
+        left: 0;
+        object-fit: contain;
+        opacity: 0.6;
+      }
+      .pick-photo {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 0 40px;
+      }
+      .pick-photo span {
+        visibility: hidden;
+        color: #fff;
+      }
+      .photo__image {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+      }
+      .pick-image {
+        display: inline-block;
+        flex: 1;
+        width: 250px;
+        /* height: 120px; */
+        object-fit: contain;
+        margin-bottom: 10px;
+      }
+      .button-area {
+        position: absolute;
+        bottom: 20px;
+        text-align: center;
+        width: 100%;
+      }
+      .button-area button {
+        margin-right: 20px;
+      }
+      .button-area button:last-child {
+        margin-right: 0;
+      }
+      #photoCanvasContainer {
+        text-align: center;
+      }
+      #photoCanvasContainer canvas {
+        opacity: 0.8;
+      }
+    </style>
+
+    <script src="./js/tagcanvas.min.js"></script>
+
+    <script src="./js/photos.js"></script>
+    
+  </head>
+  <body>
+    <div class="photo-wall">
+      <div id="photoCanvasContainer">
+        <canvas id="photoCanvas" width="500" height="500">          
+        </canvas>
+      </div>
+      <div id="tags" style="visibility: hidden;">
+        <ul id="tags-ul">
+        </ul>
+      </div>
+    </div>
+    <div class="pick-wall">
+    </div>
+    <div id="buttons" class="button-area">
+    </div>
+  </body>
+  <script></script>
+  <script>
+    window.onload = function() {
+      try {
+        TagCanvas.Start('photoCanvas','tags',{
+          // textColour: '#ff0000',
+          // outlineColour: '#ff00ff',
+          // reverse: true,
+          depth: 0.6,
+          initial: [0.03, 0.01],
+          minSpeed: 0.01,
+          maxSpeed: 0.03
+        });
+      } catch(e) {
+        // something went wrong, hide the canvas container
+        document.getElementById('photoCanvasContainer').style.display = 'none';
+      }
+    };
+    console.log('photos:', photos);
+    // pick index
+    var pickIndex = 0;
+
+    function restart() {
+      photoWall.classList.remove('animate__animated', 'animate__zoomOut'); 
+      photoWall.classList.add('animate__animated', 'animate__zoomIn');
+
+      pickWall.style.display = "none";
+      photoWall.style.display = "flex";
+
+      displayButton('home');
+    }
+
+    function reveal() {
+      var nameElements = document.querySelectorAll('.pick-photo span');
+      nameElements.forEach(item => item.style.visibility = 'visible');
+    }
+
+    function displayButton (state) {
+      var buttons = document.getElementById('buttons');
+      buttons.innerHTML = '';
+      if (state === 'home') {
+        for (var i = 1; i <= 3; i++) {
+          var pickButton = document.createElement('button');
+          pickButton.addEventListener('click', function(n) { return function () {pick(n);}; }(i));
+          pickButton.innerHTML = 'Pick ' + i;
+          pickButton.className = 'btn btn-secondary';
+          pickButton.type = 'button';
+          buttons.appendChild(pickButton);
+          // console.log(pickButton);
+        }
+      } else if (state === 'pick') {
+        var revealButton = document.createElement('button');
+        revealButton.addEventListener('click', reveal);
+        revealButton.innerHTML = 'Reveal';
+        revealButton.className = "btn btn-primary"
+        buttons.appendChild(revealButton);
+        var restartButton = document.createElement('button');
+        restartButton.addEventListener('click', restart);
+        restartButton.innerHTML = 'Restart';
+        restartButton.className = 'btn btn-secondary';
+        buttons.appendChild(restartButton);
+      }
+    }
+
+    // find a value which pow 2 is just bigger than n
+    function findFactor(n) {
+      var factor = Math.ceil(n / 2);
+      while (Math.pow(factor, 2) > n) factor--;
+      return factor + 1;
+    }
+
+    function pick(count) {
+      var pickWall = document.getElementsByClassName("pick-wall")[0]; 
+      var photoWall = document.getElementsByClassName("photo-wall")[0];
+      pickWall.innerHTML = "";
+      // add animation
+      photoWall.classList.remove('animate__animated', 'animate__zoomIn'); 
+      photoWall.classList.add('animate__animated', 'animate__zoomOut');
+
+        pickWall.classList.remove('animate__animated', 'animate__zoomOut'); 
+        pickWall.classList.add('animate__animated', 'animate__zoomIn');
+
+        photoWall.style.display = "none";
+        
+        pickWall.style.display = "flex";
+        
+        for (var i = 0; i < count; i++) {
+          // first show wanli
+          if (personList.length === pickPerson.length && count === 1) pickIndex = 82
+          else pickIndex = Math.floor(Math.random() * pickPerson.length);
+          var src = pickPerson[pickIndex].src;
+          var name = pickPerson[pickIndex].name;
+
+          var photo = createPhoto(src, "pick-image", name);
+          photo.className = "pick-photo";
+
+          // remove picked image
+          // console.log("picked:", pickPerson);
+          pickPerson.splice(pickIndex, 1);
+
+          pickedPerson.push(pickIndex);
+          pickWall.append(photo);
+        }
+
+        // switch button state
+        displayButton('pick')
+        showLog();
+    }
+
+    function selectOne(number) {
+      console.log('selected:', number);
+      pickWall.innerHTML = "";
+      // add animation
+      photoWall.classList.remove('animate__animated', 'animate__zoomIn'); 
+      photoWall.classList.add('animate__animated', 'animate__zoomOut');
+
+      pickWall.classList.remove('animate__animated', 'animate__zoomOut'); 
+      pickWall.classList.add('animate__animated', 'animate__zoomIn');
+
+      photoWall.style.display = "none";
+      
+      pickWall.style.display = "flex";
+      
+      var src = personList[number].src;
+      var name = personList[number].name;
+
+      var photo = createPhoto(src, "pick-image", name);
+      photo.className = "pick-photo";
+
+      pickWall.append(photo);
+
+      displayButton('pick');
+    }
+
+    function createPhoto(src, className, name, imageStyle, selectedIndex) {
+      var container = document.createElement("div");
+      var oneImage = document.createElement("img");
+
+      oneImage.className = className;
+      oneImage.src = src;
+      oneImage.style = imageStyle;
+      // support click to view
+      if (selectedIndex) oneImage.onclick = function () { return selectOne(selectedIndex);}
+
+      container.append(oneImage);
+      if (name) {
+        var text = document.createElement("span");
+        text.innerHTML = name;
+        container.append(text);
+        text.classList = 'animate__zoomIn';
+      }
+      return container;
+    }
+
+    function showLog() {
+
+      console.log('picked person:', pickedPerson);
+      console.log('pick left count:', pickPerson);
+    }
+
+    // // total photo
+    // var n = photos.length;
+    // var factor = findFactor(n);
+    // console.log('factor:' + factor);
+
+    // mock images
+    var personList = [];
+    var pickPerson = [],
+      pickedPerson = [];
+    var pickWall = document.getElementsByClassName("pick-wall")[0]; 
+    var photoWall = document.getElementsByClassName("photo-wall")[0];
+
+    for (var i = 0; i < photos.length; i++) {
+     personList[i] = {
+        name: photos[i].name || '??',
+        src: './photos/' + photos[i].photo,
+      };
+      pickPerson[i] = {
+        name: photos[i].name || '??',
+        src: './photos/' + photos[i].photo,
+      }; 
+    }
+
+    console.log('pick person:', pickPerson);
+
+    // var paddingHeight = 20;
+    // var buttonAreaHeight = 100;
+
+    // var w = Math.floor((document.body.clientWidth - paddingHeight * 2) / factor),
+    //   h = Math.floor((document.body.clientHeight - buttonAreaHeight - paddingHeight * 2) / factor);
+    // var photoWall = document.getElementsByClassName("photo-wall")[0];
+    // var pickWall = document.getElementsByClassName("pick-wall")[0];
+
+    // console.log('width, height:', w, h);
+
+    // photoWall.style.height = `${h * factor}px`;
+    // pickWall.style.height = `${h * factor}px`;
+    
+    var container = document.getElementById('tags-ul');
+    for (var i = 0; i < photos.length; i++) {
+      var li = document.createElement('li'),
+        a = document.createElement('a'),
+        img = document.createElement('img');
+      a.href = "#"
+      a.onclick = (function (n) { return function () { selectOne(n); }; })(i)
+      a.innerHTML = photos[i].name;
+      img.src = './photos/' + photos[i].photo;
+      // img.onclick = console.log//function () { return selectOne(i); }
+      a.appendChild(img);
+      li.appendChild(a);
+      container.appendChild(li);
+    }
+
+    // show pick buttons
+    displayButton('home');
+
+  </script>
+</html>
